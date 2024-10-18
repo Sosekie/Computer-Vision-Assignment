@@ -1,6 +1,9 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
+
+from const import TEMPLATES_PATH
 
 
 def rgb2grayscale(image):
@@ -64,20 +67,34 @@ def show_corners(image, corners, axis=None, color='r'):
 
     axis.scatter(x=[point[0] for point in corners],
                  y=[point[1] for point in corners],
-                 c=color, marker="x")
+                 c=color, marker="x", s=80)
 
     axis.plot([point[0] for point in corners] + [corners[0][0]],
               [point[1] for point in corners] + [corners[0][1]],
               c=color)
 
 
-def show_sudoku_cells(sudoku_cells):
+def show_sudoku_cells(sudoku_cells, axis=None):
     num_cells = sudoku_cells.shape[0]
-    figure, axes = plt.subplots(nrows=num_cells, ncols=num_cells, figsize=(num_cells, num_cells))
+    size = sudoku_cells.shape[2]
 
-    for i in range(num_cells):
-        for j in range(num_cells):
-            if np.min(sudoku_cells[i][j]) == np.max(sudoku_cells[i][j]):
-                show_image(np.ones((*sudoku_cells[i][j].shape, 3)), axis=axes[i][j])
-            else:
-                show_image(sudoku_cells[i][j], axis=axes[i][j], as_gray=True)
+    show_image(sudoku_cells.transpose(0, 2, 1, 3).reshape(num_cells * size, num_cells * size),
+               axis=axis, as_gray=True)
+
+
+def load_templates():
+    """
+    Returns:
+        templates (dict): dict with digits as keys and lists of template images (np.array) as values
+    """
+    templates = {}
+    for folder_name in sorted(os.listdir(TEMPLATES_PATH)):
+        if "." in folder_name:
+            continue
+        
+        folder_path = os.path.join(TEMPLATES_PATH, folder_name)
+        templates[int(folder_name)] = [read_image(os.path.join(folder_path, file_name))
+                                       for file_name in sorted(os.listdir(folder_path))
+                                       if os.path.isfile(os.path.join(folder_path, file_name))]
+    
+    return templates

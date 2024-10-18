@@ -1,21 +1,16 @@
 import os
+import shutil
 import argparse
 import numpy as np
 
 from skimage.io import imsave
 
-from pipeline import get_test_pipeline
-
-from utils import read_image
-from recognition import load_templates
+from const import TRAIN_IMAGES_PATH, TEST_IMAGES_PATH, FRONTALIZED_IMAGES_PATH
+from utils import read_image, load_templates
+from template import get_template_pipeline
+from recognition import recognize_digits
 
 from sudoku_solver import matrix_to_puzzle, solve_sudoku
-
-# BEGIN YOUR IMPORTS
-
-# END YOUR IMPORTS
-
-FRONTALIZED_IMAGES_PATH = os.path.join(".", "frontalized_images")
 
 CEND = '\33[0m'
 CBOLD = '\33[1m'
@@ -39,41 +34,37 @@ def get_recognition_error_str(recognition_error):
 
 
 def main():
-    parser = argparse.ArgumentParser(add_help=True)
-    parser.add_argument('--path', type=str, required=True, help="path to the folder with images and Sudoku matrix files")
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--test', action='store_true')
     args = parser.parse_args()
 
-    image_paths = [os.path.join(args.path, file_name) for file_name in sorted(os.listdir(args.path))
-                   if 'jpg' in os.path.splitext(file_name)[1]]
-    sudoku_matrix_paths = [os.path.join(args.path, file_name) for file_name in sorted(os.listdir(args.path))
-                           if 'npy' in os.path.splitext(file_name)[1]]
+    path = TEST_IMAGES_PATH if args.test else TRAIN_IMAGES_PATH
     
-    pipeline = get_test_pipeline()
+    image_paths = [os.path.join(path, file_name) for file_name in sorted(os.listdir(path))
+                   if 'jpg' in os.path.splitext(file_name)[1]]
+    sudoku_matrix_paths = [os.path.join(path, file_name) for file_name in sorted(os.listdir(path))
+                           if 'npy' in os.path.splitext(file_name)[1]]
+    shutil.rmtree(os.path.join(FRONTALIZED_IMAGES_PATH, f"{os.path.split(os.path.split(image_paths[0])[0])[1]}"),
+                  ignore_errors=True)
+    
+    pipeline = get_template_pipeline()
     recognition_errors = []
     for image_path, sudoku_matrix_path in zip(image_paths, sudoku_matrix_paths):
         print("-"*20)
         print(f"For Sudoku in the image {image_path}")
         sudoku_image = read_image(image_path=image_path)
+        frontalized_image, sudoku_cells = pipeline(sudoku_image)
 
-        # BEGIN YOUR CODE
-
-        frontalized_image = # YOUR CODE
-        
-        # END YOUR CODE
-
-        os.makedirs(FRONTALIZED_IMAGES_PATH, exist_ok=True)
-        frontalized_image_path = os.path.join(FRONTALIZED_IMAGES_PATH, f"frontalized_{os.path.split(image_path)[1]}")
+        frontalized_image_path = os.path.join(FRONTALIZED_IMAGES_PATH,
+                                              f"{os.path.split(os.path.split(image_path)[0])[1]}",
+                                              f"frontalized_{os.path.split(image_path)[1]}")
+        os.makedirs(os.path.split(frontalized_image_path)[0], exist_ok=True)
         imsave(frontalized_image_path, frontalized_image)
         print(f"You can find the frontalized image at {frontalized_image_path}")
         print("-"*20)
 
         templates_dict = load_templates()
-        # BEGIN YOUR CODE
-        
-        sudoku_cells = # YOUR CODE
-        sudoku_matrix = # YOUR CODE
-
-        # END YOUR CODE
+        sudoku_matrix = recognize_digits(sudoku_cells, templates_dict)
 
         gt_sudoku_matrix = np.load(sudoku_matrix_path)
 
