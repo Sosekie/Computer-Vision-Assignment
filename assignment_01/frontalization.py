@@ -27,9 +27,18 @@ def find_edges(image):
     """
     # BEGIN YOUR CODE
 
-    # edges =
-    
-    # return edges
+    if len(image.shape) == 3:  # If the image has 3 channels (RGB), convert to grayscale
+        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray_image = image
+
+    # Apply GaussianBlur to reduce noise before edge detection
+    blurred_image = cv2.GaussianBlur(gray_image, (5, 5), 0)
+
+    # Use Canny edge detection
+    edges = cv2.Canny(blurred_image, threshold1=50, threshold2=150)
+
+    return edges
     
     # END YOUR CODE
     
